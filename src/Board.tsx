@@ -14,8 +14,8 @@ type ScoreSet = { ehre: number, respekt: number, stabilitaet: number }
 function sumScoreSets(a: ScoreSet, b: ScoreSet): ScoreSet {
     return { ehre: a.ehre + b.ehre, respekt: a.respekt + b.respekt, stabilitaet: a.stabilitaet + b.stabilitaet }
 }
-function scoreSum(a?:ScoreSet){
-    if(!a) return 0
+function scoreSum(a?: ScoreSet) {
+    if (!a) return 0
     return a.ehre + a.respekt + a.stabilitaet
 }
 function scaleScoreSet(a: ScoreSet, scale: number): ScoreSet {
@@ -51,9 +51,9 @@ export default function Board() {
     const [newActionDescription, setNewActionDescription] = useState("")
     const [newEditorEmail, setNewEditorEmail] = useState("")
 
-    const [newEhre, setNewEhre] = useState(0)
-    const [newRespect, setNewRespect] = useState(0)
-    const [newStabilitaet, setNewStabilitaet] = useState(0)
+    const [newEhre, setNewEhre] = useState("0")
+    const [newRespect, setNewRespect] = useState("0")
+    const [newStabilitaet, setNewStabilitaet] = useState("0")
 
     useEffect(() => {
         supabase.from<{ id: number, name: string, actors: Actor[], actions: Action[] }>('boards').select(`
@@ -78,7 +78,7 @@ export default function Board() {
         const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
         scores.set(a.actor.id, sumScoreSets(scaleScoreSet(scoresSum, 1 / a.action_votes.length), scores.get(a.actor.id)!))
     }
-    actors.sort((a,b)=>scoreSum(scores.get(b.id))-scoreSum(scores.get(a.id)))
+    actors.sort((a, b) => scoreSum(scores.get(b.id)) - scoreSum(scores.get(a.id)))
     const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
         return (
             <div className="action-vote">
@@ -182,12 +182,12 @@ export default function Board() {
                     </Text>
                 </Modal.Header>
                 <Modal.Body>
-                    <Input type="number" label="Ehre" onChange={e => setNewEhre(parseFloat(e.target.value))} initialValue="0" value={newEhre} />
-                    <Input type="number" label="Respekt" onChange={e => setNewRespect(parseFloat(e.target.value))} initialValue="0" value={newRespect} />
-                    <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(parseFloat(e.target.value))} initialValue="0" value={newStabilitaet} />
+                    <Input type="number" label="Ehre" onChange={e => setNewEhre(e.target.value)} initialValue="0" value={newEhre} />
+                    <Input type="number" label="Respekt" onChange={e => setNewRespect(e.target.value)} initialValue="0" value={newRespect} />
+                    <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(e.target.value)} initialValue="0" value={newStabilitaet} />
                     <Button onClick={async (e) => {
                         e.currentTarget.focus()
-                        await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: newEhre, respekt: newRespect, stabilitaet: newStabilitaet })
+                        await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: parseFloat(newEhre), respekt: parseFloat(newRespect), stabilitaet: parseFloat(newStabilitaet) })
                         increase()
                         setActionVote(null)
                     }}>Vote</Button>
@@ -211,7 +211,7 @@ export default function Board() {
                     {actions.map((action) => (
                         <Table.Row>
                             <Table.Cell>{action.actor.name}</Table.Cell>
-                            <Table.Cell><p style={{ overflowWrap:"break-word" ,maxWidth:"30vw",overflowX:"auto"}}>{action.description}</p></Table.Cell>
+                            <Table.Cell><p style={{ overflowWrap: "break-word", maxWidth: "30vw", overflowX: "auto" }}>{action.description}</p></Table.Cell>
                             <Table.Cell>{new Date(action.created_at).toLocaleDateString()}</Table.Cell>
                             <Table.Cell>{action.action_votes.map(v => (<Vote vote={v} action={action} />))}</Table.Cell>
                             <Table.Cell>
