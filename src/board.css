@@ -9,3 +9,6 @@ div.action-vote{
 div.action-vote>p{
     margin-top:0
 }
+div.rs-picker-menu{
+    z-index: 1000;
+}

@@ -7,7 +7,7 @@ import "./board.css"
 import { TiDeleteOutline, TiPlus } from "react-icons/ti"
 
 function dateCompare(a: { created_at: string }, b: { created_at: string }) {
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 }
 type ScoreSet = { ehre: number, respekt: number, stabilitaet: number }
 
@@ -60,7 +60,6 @@ export default function Board() {
             setActors(leaderboard.data[0].actors)
             setActions(leaderboard.data[0].actions)
             setIsLoading(false)
-            //setPlayers(leaderboard?.data)
         })
         supabase.from<{ email: string, board: number }>("editors").select("email,board").eq("board", id).then(editors => {
             if (editors.data)
@@ -156,7 +155,9 @@ export default function Board() {
 
             </p>
             <h2>Add action</h2>
-            <SelectPicker data={actors.map(a => ({
+            <SelectPicker 
+                style={{zIndex: 100}}
+                data={actors.map(a => ({
                 label: a.name,
                 value: a.id
             }))} label="Actor" value={newActionActorId} onChange={setNewActionActorId} />
@@ -175,9 +176,9 @@ export default function Board() {
                     </Text>
                 </Modal.Header>
                 <Modal.Body>
-                    <Input type="number" label="Ehre" onChange={e => setNewEhre(parseFloat(e.target.value))} initialValue="0" />
-                    <Input type="number" label="Respekt" onChange={e => setNewRespect(parseFloat(e.target.value))} initialValue="0" />
-                    <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(parseFloat(e.target.value))} initialValue="0" />
+                    <Input type="number" label="Ehre" onChange={e => setNewEhre(parseFloat(e.target.value))} initialValue="0" value={newEhre} />
+                    <Input type="number" label="Respekt" onChange={e => setNewRespect(parseFloat(e.target.value))} initialValue="0" value={newRespect} />
+                    <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(parseFloat(e.target.value))} initialValue="0" value={newStabilitaet} />
                     <Button onClick={async (e) => {
                         e.currentTarget.focus()
                         await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: newEhre, respekt: newRespect, stabilitaet: newStabilitaet })
