@@ -155,12 +155,12 @@ export default function Board() {
 
             </p>
             <h2>Add action</h2>
-            <SelectPicker 
-                style={{zIndex: 100}}
+            <SelectPicker
+                style={{ zIndex: 100 }}
                 data={actors.map(a => ({
-                label: a.name,
-                value: a.id
-            }))} label="Actor" value={newActionActorId} onChange={setNewActionActorId} />
+                    label: a.name,
+                    value: a.id
+                }))} label="Actor" value={newActionActorId} onChange={setNewActionActorId} />
             <Input onChange={e => setNewActionDescription(e.target.value)} placeholder="New action description"
                 contentClickable
                 clearable
@@ -205,7 +205,7 @@ export default function Board() {
                     {Array.from(actions).map((action, i) => (
                         <Table.Row>
                             <Table.Cell>{action.actor.name}</Table.Cell>
-                            <Table.Cell>{action.description}</Table.Cell>
+                            <Table.Cell><p style={{ overflowWrap:"break-word" ,maxWidth:"30vw",overflowX:"auto"}}>{action.description}</p></Table.Cell>
                             <Table.Cell>{new Date(action.created_at).toLocaleDateString()}</Table.Cell>
                             <Table.Cell>{action.action_votes.map(v => (<Vote vote={v} action={action} />))}</Table.Cell>
                             <Table.Cell>
