@@ -127,9 +127,10 @@ export default function Board() {
                             <Table.Cell>{scores.get(p.id)?.stabilitaet?.toFixed(1)}</Table.Cell>
                             <Table.Cell>
                                 <Tooltip
-                                    content="Delete player"
+                                    content="Delete actor"
                                     color="error"
                                     onClick={async () => {
+                                        if (!confirm("Are you sure you want to delete this actor?")) return
                                         await supabase.from('actors').delete().eq('id', p.id)
                                         increase()
                                     }}
@@ -177,7 +178,8 @@ export default function Board() {
                     <Input type="number" label="Ehre" onChange={e => setNewEhre(parseFloat(e.target.value))} initialValue="0" />
                     <Input type="number" label="Respekt" onChange={e => setNewRespect(parseFloat(e.target.value))} initialValue="0" />
                     <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(parseFloat(e.target.value))} initialValue="0" />
-                    <Button onClick={async () => {
+                    <Button onClick={async (e) => {
+                        e.currentTarget.focus()
                         await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: newEhre, respekt: newRespect, stabilitaet: newStabilitaet })
                         increase()
                         setActionVote(null)
@@ -220,6 +222,7 @@ export default function Board() {
                                     content="Delete action"
                                     color="error"
                                     onClick={async () => {
+                                        if (!confirm("Are you sure you want to delete this action?")) return
                                         await supabase.from('actions').delete().eq('id', action.id)
                                         increase()
                                     }}
@@ -281,6 +284,7 @@ export default function Board() {
                 color="warning"
                 style={{ margin: "auto" }}
                 onClick={async () => {
+                    if (!confirm("Are you sure you want to delete this board?")) return
                     await supabase.from("boards").delete().eq("id", id)
                     navigate("/")
                 }}>Delete leaderboard</Button>
