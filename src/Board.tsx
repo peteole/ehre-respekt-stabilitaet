@@ -14,6 +14,10 @@ type ScoreSet = { ehre: number, respekt: number, stabilitaet: number }
 function sumScoreSets(a: ScoreSet, b: ScoreSet): ScoreSet {
     return { ehre: a.ehre + b.ehre, respekt: a.respekt + b.respekt, stabilitaet: a.stabilitaet + b.stabilitaet }
 }
+function scoreSum(a?:ScoreSet){
+    if(!a) return 0
+    return a.ehre + a.respekt + a.stabilitaet
+}
 function scaleScoreSet(a: ScoreSet, scale: number): ScoreSet {
     if (!isFinite(scale))
         return a
@@ -27,6 +31,7 @@ type Action = { id: number, description: string, actor: Actor, created_at: strin
 async function from<T>(table: string) {
     const res = await supabase.from<T>(table)
 }
+
 
 export default function Board() {
     const authenticated = supabase.auth.user !== null
@@ -73,6 +78,7 @@ export default function Board() {
         const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
         scores.set(a.actor.id, sumScoreSets(scaleScoreSet(scoresSum, 1 / a.action_votes.length), scores.get(a.actor.id)!))
     }
+    actors.sort((a,b)=>scoreSum(scores.get(b.id))-scoreSum(scores.get(a.id)))
     const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
         return (
             <div className="action-vote">
