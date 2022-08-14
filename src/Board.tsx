@@ -84,8 +84,8 @@ export default function Board() {
                     color="error"
                     style={{
                         position: "absolute",
-                        top: 12,
-                        right: 15,
+                        top: 3,
+                        right: 3,
                     }}
                     onClick={async () => {
                         await supabase.from('action_votes').delete().eq("action", props.action?.id).eq("voter", props.vote.voter.id)
