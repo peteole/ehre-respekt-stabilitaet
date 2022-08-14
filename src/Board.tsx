@@ -202,7 +202,7 @@ export default function Board() {
                     <Table.Column>Actions</Table.Column>
                 </Table.Header>
                 <Table.Body>
-                    {Array.from(actions).map((action, i) => (
+                    {actions.map((action) => (
                         <Table.Row>
                             <Table.Cell>{action.actor.name}</Table.Cell>
                             <Table.Cell><p style={{ overflowWrap:"break-word" ,maxWidth:"30vw",overflowX:"auto"}}>{action.description}</p></Table.Cell>
