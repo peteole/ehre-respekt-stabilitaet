@@ -1,15 +1,29 @@
-import { useEffect, useReducer, useState } from "react";
+import { FC, useEffect, useReducer, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./client";
-import { Button, Input, Loading, Table, Tooltip } from "@nextui-org/react";
+import { Button, Input, Loading, Modal, Table, Text, Tooltip } from "@nextui-org/react";
 import { SelectPicker } from 'rsuite';
-//import "./leaderboard.css"
+import "./board.css"
 import { TiDeleteOutline, TiPlus } from "react-icons/ti"
 
+function dateCompare(a: { created_at: string }, b: { created_at: string }) {
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+}
+type ScoreSet = { ehre: number, respekt: number, stabilitaet: number }
+
+function sumScoreSets(a: ScoreSet, b: ScoreSet): ScoreSet {
+    return { ehre: a.ehre + b.ehre, respekt: a.respekt + b.respekt, stabilitaet: a.stabilitaet + b.stabilitaet }
+}
+function scaleScoreSet(a: ScoreSet, scale: number): ScoreSet {
+    if (!isFinite(scale))
+        return a
+    return { ehre: a.ehre * scale, respekt: a.respekt * scale, stabilitaet: a.stabilitaet * scale }
+}
 
 type Actor = { name: string, id: number }
-type ActionVote = { action?: Action, voter: string, created_at: string, ehre: number, respekt: number, stabilitaet: number }
-type Action = { id: number, description: string, actor: Actor, created_at: string }
+type Voter = { username: string, id: string }
+type ActionVote = { voter: Voter, created_at: string, ehre: number, respekt: number, stabilitaet: number }
+type Action = { id: number, description: string, actor: Actor, created_at: string, action_votes: ActionVote[] }
 async function from<T>(table: string) {
     const res = await supabase.from<T>(table)
 }
@@ -17,6 +31,7 @@ async function from<T>(table: string) {
 export default function Board() {
     const authenticated = supabase.auth.user !== null
     const [name, setName] = useState("")
+    const [actionVote, setActionVote] = useState<Action | null>(null)
     const navigate = useNavigate()
     const [actors, setActors] = useState<Actor[]>([])
     const [actorName, setActorName] = useState("")
@@ -31,10 +46,13 @@ export default function Board() {
     const [newActionDescription, setNewActionDescription] = useState("")
     const [newEditorEmail, setNewEditorEmail] = useState("")
 
+    const [newEhre, setNewEhre] = useState(0)
+    const [newRespect, setNewRespect] = useState(0)
+    const [newStabilitaet, setNewStabilitaet] = useState(0)
 
     useEffect(() => {
-        supabase.from<{ id: number, name: string, actors: Actor[],actions:Action[] }>('boards').select(`
-            id,name, actors(id,name),actions(id,description,actor(id,name),created_at)
+        supabase.from<{ id: number, name: string, actors: Actor[], actions: Action[] }>('boards').select(`
+            id,name, actors(id,name),actions(id,description,actor(id,name),created_at,action_votes(voter(username,id),created_at,ehre,respekt,stabilitaet))
         `).eq('id', id).then(leaderboard => {
             console.log(leaderboard)
             if (!leaderboard?.data?.length) return
@@ -50,6 +68,35 @@ export default function Board() {
         })
     }, [version])
 
+    actions.sort(dateCompare)
+    const scores = new Map<number, ScoreSet>(actors.map(a => [a.id, { ehre: 0, respekt: 0, stabilitaet: 0 }]))
+    for (const a of actions) {
+        const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
+        scores.set(a.actor.id, sumScoreSets(scaleScoreSet(scoresSum, 1 / a.action_votes.length), scores.get(a.actor.id)!))
+    }
+    const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
+        return (
+            <div className="action-vote">
+                <p>e={props.vote.ehre} r={props.vote.respekt} s={props.vote.stabilitaet}</p>
+                <p>{props.vote.voter.username}</p>
+                <Tooltip
+                    content="Delete vote"
+                    color="error"
+                    style={{
+                        position: "absolute",
+                        top: 12,
+                        right: 15,
+                    }}
+                    onClick={async () => {
+                        await supabase.from('action_votes').delete().eq("action", props.action?.id).eq("voter", props.vote.voter.id)
+                        increase()
+                    }}
+                >
+                    <TiDeleteOutline color="red" />
+                </Tooltip>
+            </div>
+        )
+    }
     if (isLoading)
         return <Loading size="md" />
 
@@ -75,9 +122,9 @@ export default function Board() {
                     {actors.map((p) => (
                         <Table.Row>
                             <Table.Cell>{p.name}</Table.Cell>
-                            <Table.Cell>0</Table.Cell>
-                            <Table.Cell>0</Table.Cell>
-                            <Table.Cell>0</Table.Cell>
+                            <Table.Cell>{scores.get(p.id)?.ehre?.toFixed(1)}</Table.Cell>
+                            <Table.Cell>{scores.get(p.id)?.respekt?.toFixed(1)}</Table.Cell>
+                            <Table.Cell>{scores.get(p.id)?.stabilitaet?.toFixed(1)}</Table.Cell>
                             <Table.Cell>
                                 <Tooltip
                                     content="Delete player"
@@ -87,9 +134,7 @@ export default function Board() {
                                         increase()
                                     }}
                                 >
-                                    <IconButton>
-                                        <TiDeleteOutline />
-                                    </IconButton>
+                                    <TiDeleteOutline color="red" />
                                 </Tooltip>
                             </Table.Cell>
                         </Table.Row>
@@ -119,10 +164,26 @@ export default function Board() {
                 clearable
                 contentRight={<TiPlus />}
                 onContentClick={async (p, e) => {
-                    await supabase.from("actions").insert({ actor:newActionActorId, board: id ,description: newActionDescription })
+                    await supabase.from("actions").insert({ actor: newActionActorId, board: id, description: newActionDescription })
                     increase()
                 }} />
-
+            <Modal open={actionVote != null} closeButton onClose={() => setActionVote(null)}>
+                <Modal.Header>
+                    <Text>
+                        Vote on action "{actionVote?.description}"
+                    </Text>
+                </Modal.Header>
+                <Modal.Body>
+                    <Input type="number" label="Ehre" onChange={e => setNewEhre(parseFloat(e.target.value))} initialValue="0" />
+                    <Input type="number" label="Respekt" onChange={e => setNewRespect(parseFloat(e.target.value))} initialValue="0" />
+                    <Input type="number" label="Stabilität" onChange={e => setNewStabilitaet(parseFloat(e.target.value))} initialValue="0" />
+                    <Button onClick={async () => {
+                        await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: newEhre, respekt: newRespect, stabilitaet: newStabilitaet })
+                        increase()
+                        setActionVote(null)
+                    }}>Vote</Button>
+                </Modal.Body>
+            </Modal>
             <h2 style={{ marginTop: 50 }}>Actions</h2>
             <Table
                 aria-label="Actions"
@@ -143,8 +204,18 @@ export default function Board() {
                             <Table.Cell>{action.actor.name}</Table.Cell>
                             <Table.Cell>{action.description}</Table.Cell>
                             <Table.Cell>{new Date(action.created_at).toLocaleDateString()}</Table.Cell>
-                            <Table.Cell>Vote</Table.Cell>
+                            <Table.Cell>{action.action_votes.map(v => (<Vote vote={v} action={action} />))}</Table.Cell>
                             <Table.Cell>
+                                <Tooltip
+                                    content="Vote on action"
+                                    color="secondary"
+                                    onClick={async () => {
+                                        setActionVote(action)
+                                    }}
+                                >
+                                    <TiPlus color="purple" />
+                                </Tooltip>
+
                                 <Tooltip
                                     content="Delete action"
                                     color="error"
@@ -153,9 +224,7 @@ export default function Board() {
                                         increase()
                                     }}
                                 >
-                                    <IconButton>
-                                        <TiDeleteOutline />
-                                    </IconButton>
+                                    <TiDeleteOutline color="red" />
                                 </Tooltip>
                             </Table.Cell>
                         </Table.Row>
@@ -199,9 +268,7 @@ export default function Board() {
                                             increase()
                                         }}
                                     >
-                                        <IconButton>
-                                            <TiDeleteOutline />
-                                        </IconButton>
+                                        <TiDeleteOutline color="red" />
                                     </Tooltip>
                                 </Table.Cell>
                             </Table.Row>)
@@ -209,34 +276,15 @@ export default function Board() {
                     }
                 </Table.Body>
             </Table>
+            <h2>Danger zone</h2>
             <Button
                 color="warning"
                 style={{ margin: "auto" }}
                 onClick={async () => {
-                    await supabase.from("leaderboards").delete().eq("id", id)
+                    await supabase.from("boards").delete().eq("id", id)
                     navigate("/")
                 }}>Delete leaderboard</Button>
         </div>
     )
 }
-
-import { styled } from '@nextui-org/react';
-
-// IconButton component will be available as part of the core library soon
-export const IconButton = styled('button', {
-    dflex: 'center',
-    border: 'none',
-    outline: 'none',
-    cursor: 'pointer',
-    padding: '0',
-    margin: '0',
-    bg: 'transparent',
-    transition: '$default',
-    '&:hover': {
-        opacity: '0.8'
-    },
-    '&:active': {
-        opacity: '0.6'
-    }
-});
 

@@ -1,0 +1,9 @@
+div.action-vote{
+    background-color: rgba(248, 222, 135, 0.377);
+    padding: 4px;
+    border-radius: 5px;
+    font-size: 10px;
+}
+div.action-vote>p{
+    margin-top:0
+}
