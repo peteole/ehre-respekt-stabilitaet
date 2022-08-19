@@ -1,4 +1,4 @@
-import { FC, useEffect, useReducer, useState } from "react";
+import { FC, useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./client";
 import { Button, Input, Loading, Modal, Table, Text, Tooltip } from "@nextui-org/react";
@@ -73,14 +73,18 @@ export default function Board() {
     }, [version])
 
     actions.sort(dateCompare)
-    const scores = new Map<number, ScoreSet>(actors.map(a => [a.id, { ehre: 0, respekt: 0, stabilitaet: 0 }]))
-    for (const a of actions) {
-        const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
-        const averageScore = scaleScoreSet(scoresSum, 1 / a.action_votes.length)
-        if (a.action_votes.some(v => v.voter.username.toLowerCase() === a.actor.name.toLowerCase() && (v.ehre > averageScore.ehre || v.respekt > averageScore.respekt || v.stabilitaet > averageScore.stabilitaet)))
-            averageScore.ehre = averageScore.ehre - 1
-        scores.set(a.actor.id, sumScoreSets(averageScore, scores.get(a.actor.id)!))
-    }
+    const scores=useMemo(()=>{
+        const scores = new Map<number, ScoreSet>(actors.map(a => [a.id, { ehre: 0, respekt: 0, stabilitaet: 0 }]))
+        for (const a of actions) {
+            const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
+            const averageScore = scaleScoreSet(scoresSum, 1 / a.action_votes.length)
+            if (a.action_votes.some(v => v.voter.username.toLowerCase() === a.actor.name.toLowerCase() && (v.ehre > averageScore.ehre || v.respekt > averageScore.respekt || v.stabilitaet > averageScore.stabilitaet)))
+                averageScore.ehre = averageScore.ehre - 1
+            scores.set(a.actor.id, sumScoreSets(averageScore, scores.get(a.actor.id)!))
+        }
+        return scores
+    },[actors,actions])
+    
     actors.sort((a, b) => scoreSum(scores.get(b.id)) - scoreSum(scores.get(a.id)))
     const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
         return (
