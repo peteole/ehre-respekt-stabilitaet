@@ -77,7 +77,7 @@ export default function Board() {
     for (const a of actions) {
         const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
         const averageScore = scaleScoreSet(scoresSum, 1 / a.action_votes.length)
-        if (a.action_votes.some(v => v.voter.username.toLowerCase() === a.actor.name.toLowerCase()))
+        if (a.action_votes.some(v => v.voter.username.toLowerCase() === a.actor.name.toLowerCase() && (v.ehre > averageScore.ehre || v.respekt > averageScore.respekt || v.stabilitaet > averageScore.stabilitaet)))
             averageScore.ehre = averageScore.ehre - 1
         scores.set(a.actor.id, sumScoreSets(averageScore, scores.get(a.actor.id)!))
     }
