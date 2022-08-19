@@ -76,7 +76,10 @@ export default function Board() {
     const scores = new Map<number, ScoreSet>(actors.map(a => [a.id, { ehre: 0, respekt: 0, stabilitaet: 0 }]))
     for (const a of actions) {
         const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
-        scores.set(a.actor.id, sumScoreSets(scaleScoreSet(scoresSum, 1 / a.action_votes.length), scores.get(a.actor.id)!))
+        const averageScore = scaleScoreSet(scoresSum, 1 / a.action_votes.length)
+        if (a.action_votes.some(v => v.voter.username === a.actor.name))
+            averageScore.ehre = averageScore.ehre - 1
+        scores.set(a.actor.id, sumScoreSets(averageScore, scores.get(a.actor.id)!))
     }
     actors.sort((a, b) => scoreSum(scores.get(b.id)) - scoreSum(scores.get(a.id)))
     const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
