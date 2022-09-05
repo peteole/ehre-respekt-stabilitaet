@@ -72,8 +72,10 @@ export default function Board() {
         })
     }, [version])
 
-    actions.sort(dateCompare)
-    const scores=useMemo(()=>{
+    const sortedActions= useMemo(() => {
+        return actions.sort(dateCompare)
+    }, [actions])
+    const scores = useMemo(() => {
         const scores = new Map<number, ScoreSet>(actors.map(a => [a.id, { ehre: 0, respekt: 0, stabilitaet: 0 }]))
         for (const a of actions) {
             const scoresSum = a.action_votes.map(v => ({ ehre: v.ehre, respekt: v.respekt, stabilitaet: v.stabilitaet })).reduce(sumScoreSets, { ehre: 0, respekt: 0, stabilitaet: 0 })
@@ -83,9 +85,11 @@ export default function Board() {
             scores.set(a.actor.id, sumScoreSets(averageScore, scores.get(a.actor.id)!))
         }
         return scores
-    },[actors,actions])
-    
-    actors.sort((a, b) => scoreSum(scores.get(b.id)) - scoreSum(scores.get(a.id)))
+    }, [actors, sortedActions])
+    const sortedActors = useMemo(() => {
+        return actors.sort((a, b) => scoreSum(scores.get(b.id)) - scoreSum(scores.get(a.id)))
+    },[actors, scores])
+
     const Vote: FC<{ vote: ActionVote, action: Action }> = props => {
         return (
             <div className="action-vote">
@@ -131,7 +135,7 @@ export default function Board() {
                     <Table.Column>Actions</Table.Column>
                 </Table.Header>
                 <Table.Body>
-                    {actors.map((p) => (
+                    {sortedActors.map((p) => (
                         <Table.Row>
                             <Table.Cell>{p.name}</Table.Cell>
                             <Table.Cell>{scores.get(p.id)?.ehre?.toFixed(1)}</Table.Cell>
@@ -219,7 +223,7 @@ export default function Board() {
                     <Table.Column>Actions</Table.Column>
                 </Table.Header>
                 <Table.Body>
-                    {actions.map((action) => (
+                    {sortedActions.map((action) => (
                         <Table.Row>
                             <Table.Cell>{action.actor.name}</Table.Cell>
                             <Table.Cell><p style={{ overflowWrap: "break-word", maxWidth: "30vw", overflowX: "auto" }}>{action.description}</p></Table.Cell>
