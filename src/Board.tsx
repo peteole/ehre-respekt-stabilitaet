@@ -180,6 +180,7 @@ export default function Board() {
                 contentRight={<TiPlus />}
                 onContentClick={async (p, e) => {
                     await supabase.from("actions").insert({ actor: newActionActorId, board: id, description: newActionDescription })
+                    setNewActionDescription("")
                     increase()
                 }} />
             <Modal open={actionVote != null} closeButton onClose={() => setActionVote(null)}>
@@ -195,6 +196,9 @@ export default function Board() {
                     <Button onClick={async (e) => {
                         e.currentTarget.focus()
                         await supabase.from("action_votes").insert({ action: actionVote?.id, ehre: parseFloat(newEhre), respekt: parseFloat(newRespect), stabilitaet: parseFloat(newStabilitaet) })
+                        setNewEhre("0")
+                        setNewRespect("0")
+                        setNewStabilitaet("0")
                         increase()
                         setActionVote(null)
                     }}>Vote</Button>
